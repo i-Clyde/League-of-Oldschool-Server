@@ -1,0 +1,37 @@
+@ Główna aplikacjas
+
+1. Start aplikacji
+  a) Stworzenie globalnego CSS
+   *) 2 Pliki CSS + Plik referencji //{kod} //w pliki {kod} == style modali
+  b) Stworzenie gridu niebiesko-białego-czarnego(przezroczystosc)
+  c) Bardzo szczegółowe tworzenie DOM'a
+  d) Uporanie się z animacjami jQuery
+  e) Test logiczny funkcje itd (wykorzystanie document(ready))
+2. Koordynacja z socketio
+  a) Zabij process gdy server się nagle rozłączy
+  b) Przekazuj każdą informacje (warning, success, error)
+  c) Wywoływanie funkcji odpowiedzi socketa
+  d) Playerid jest w pewien sposób jawne
+
+## Logika plików
+(...)
+
+@ Server
+
+@ Baza danych
+
+# Player
+  player id - unikatowe pozwoli na komunkacje między graczami i określanie
+  login - (trim, tolowercase) tutaj aby podczas logowania nie było problemów
+  nickname - Nazwa wyświetlana w grze i na liście
+  nickname trimed - nazwa do wyszukiwania i ogólnie pracy serwerowej
+  password - haslo bcrypt
+  info - array z rzeczami tj. (register_date, last_login, first_ip, last_ip, login_attemps, ingame{gametoken, time, mode})
+  stats - array ze statystykami tj. (rp, pz, xp, poziom, games played, wins, icon, status[online, offline, brb], description)
+  runes - array (page1(name:qwe, 1:29299, runes(...))
+  social - array {friends{}, pending{}, sent{}, ignored{}}
+  masteries - array (page1(), page2())
+  message history - (to/from => player id, msg => msg, when => data)
+  restrictions - array (restriction: ban, to: date, from: date, for: msg)
+
+# Custom lobbies
