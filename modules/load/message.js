@@ -42,12 +42,12 @@ module.exports.load = (socketid, pid) => {
     ]).exec();
 
     agch.then(agh => {
-      io.to(socketid).emit('load old message res', agh);
+      io.to(socketid).emit('load old message res', {'history': agh, 'cid': pid});
     }).catch(err => {error('101320')})
 
   } else {
 
-    io.to(socketid).emit('load old message res', null);
+    io.to(socketid).emit('load old message res', {'history': null, 'cid': pid});
 
   }
 
