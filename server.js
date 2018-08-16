@@ -15,6 +15,9 @@ db.once('open', function() {
   var loggedInCounter = 0;
   Player.update({}, {'social.status': 0}, {multi: true}, (err) => {if(err) console.log('[ERROR] There was an error trying to set offline status to everyone. - '+err)})
 
+  var http = require('http').createServer().listen(io_server_port, function(){console.log("\n==========================\n Version: 0.3.7\n oldSchoolLeagueClientServer: is running @port: " + io_server_port + "\n Author: Mikołaj Chodorowski\n Press CTRL+C to end process \n==========================\n")});;
+  var io = require('socket.io').listen(http);
+
   // Socket.IO Events handlers
   io.on('connection', function(socket) {
 
@@ -146,9 +149,13 @@ db.once('open', function() {
         require("./modules/remove/friend").remove(socket.id, data.pid, socket.pid, socket.loggedin);
       })
 
+      // Mark message as readed
+      socket.on('mark messages as read', (data) => {
+        require("./modules/set/messagereaded").set(socket.id, data.pid, socket.loggedin);
+      })
+
   });
 
+  module.exports = {io, Player, bcrypt, mongoose, validator, gChat, escapeHtml};
+
 });
-var http = require('http').createServer().listen(io_server_port, function(){console.log("\n==========================\n Version: 0.3.7\n oldSchoolLeagueClientServer: is running @port: " + io_server_port + "\n Author: Mikołaj Chodorowski\n Press CTRL+C to end process \n==========================\n")});;
-var io = require('socket.io').listen(http);
-module.exports = {io, Player, bcrypt, mongoose, validator, gChat, escapeHtml};

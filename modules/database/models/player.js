@@ -192,7 +192,10 @@ var PlayerSchema = new mongoose.Schema({
     masteriesPageNames: [],
     masteriesSettings: []
   },
-  messageHistory: [],
+  messageHistory: {
+    type: Map,
+    of: Array
+  },
   unreadMessages: [],
   restriction: {
     status: {
