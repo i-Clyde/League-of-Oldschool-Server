@@ -23,7 +23,7 @@ db.once('open', function() {
 
     // On connection stuff {
       connectCounter++;socket.loggedin = false;
-      require("./modules/events/connect").connected(connectCounter);
+      require("./modules/events/connect").connected(connectCounter, loggedInCounter);
     // };
 
     socket.on('disconnect', function() {
@@ -46,14 +46,14 @@ db.once('open', function() {
 
           if (res.loggedin === true) {
             loggedInCounter++;
+            io.to('logged users').emit('online users', {'online':connectCounter, 'loggedin':loggedInCounter});
             socket.login = res.login;
             socket.pid = res.id;
             socket.nickname = res.nick;
             socket.loggedin = res.loggedin;
 
-            socket.join('logged users', function() {
-              socket.join('global chat');
-            });
+            socket.join('logged users');
+            socket.join('global chat');
           }
 
         });
@@ -151,7 +151,12 @@ db.once('open', function() {
 
       // Mark message as readed
       socket.on('mark messages as read', (data) => {
-        require("./modules/set/messagereaded").set(socket.id, data.pid, socket.loggedin);
+        require("./modules/set/messagereaded").set(socket.id, data.pid, socket.loggedin, data.specify);
+      })
+
+      // Ask for online counter
+      socket.on('online users request', () => {
+        io.to('logged users').emit('online users', {'online':connectCounter, 'loggedin':loggedInCounter});
       })
 
   });

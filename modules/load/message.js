@@ -48,7 +48,7 @@ module.exports.load = (socketid, pid) => {
   } else {
 
     let findquery = 'messageHistory.'+ pid;
-    Player.findOne({'socketToken': socketid}, findquery).exec().then(msgs => {
+    Player.findOne({'socketToken': socketid}, findquery).slice(findquery, -40).exec().then(msgs => {
 
       io.to(socketid).emit('load old message res', {'history': msgs.messageHistory.get(pid), 'cid': pid})
 

@@ -4,6 +4,7 @@ module.exports.disconnected = (socketID, loggedIn, count, loggedInCount, socketI
 
   // Casual operatons
   console.log('[INFO] New online players counter: '+count);
+  io.to('logged users').emit('online users', {'online':count, 'loggedin':loggedInCount});
 
   // If logged in
   if (loggedIn) {
