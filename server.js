@@ -8,8 +8,6 @@ var bcrypt = require('bcryptjs');
 var {mongoose, Player, db, gChat, escapeHtml} = require('./modules/database/connection');
 
 db.once('open', function() {
-  console.log('[INFO] Successfully connected to the database');
-  console.log('[INFO] Server successfully started to listen');
 
   var connectCounter = 0;
   var loggedInCounter = 0;
@@ -17,6 +15,9 @@ db.once('open', function() {
 
   var http = require('http').createServer().listen(io_server_port, function(){console.log("\n==========================\n Version: 0.3.7\n oldSchoolLeagueClientServer: is running @port: " + io_server_port + "\n Author: Mikołaj Chodorowski\n Press CTRL+C to end process \n==========================\n")});;
   var io = require('socket.io').listen(http);
+
+  console.log('[INFO] Successfully connected to the database');
+  console.log('[INFO] Server successfully started to listen');
 
   // Socket.IO Events handlers
   io.on('connection', function(socket) {

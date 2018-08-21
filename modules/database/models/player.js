@@ -196,7 +196,6 @@ var PlayerSchema = new mongoose.Schema({
     type: Map,
     of: Array
   },
-  unreadMessages: [],
   restriction: {
     status: {
       ingame: {
