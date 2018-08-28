@@ -131,6 +131,10 @@ var PlayerSchema = new mongoose.Schema({
         default: null
       }
     },
+    inChampionSelect: {
+      type: Boolean,
+      default: false
+    },
     beforeGame: {
       team: {
         type: String
@@ -167,6 +171,10 @@ var PlayerSchema = new mongoose.Schema({
       type: String,
       default: null
     },
+    desc_three: {
+      type: String,
+      default: null
+    },
     relations: {
       friends: [Number],
       pending: {
@@ -194,7 +202,12 @@ var PlayerSchema = new mongoose.Schema({
   },
   messageHistory: {
     type: Map,
-    of: Array
+    of: Array,
+    default: {}
+  },
+  customGame: {
+    inlobby: {type: Boolean, default: false},
+    lobbyid: {type: String, default: null}
   },
   restriction: {
     status: {

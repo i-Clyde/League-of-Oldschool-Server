@@ -6,7 +6,7 @@ module.exports.set = (newicon, socketid, update) => {
   function error(n) {io.to(socketid).emit('set icon response', {status: 'error', msg: 'An error occured, please try again! [#' + n + ']'})};
 
   if (((newicon >= 0) && (newicon <= 28)) || ((newicon >= 502) && (newicon <= 742))) {
-    var checkisowned = Player.findOne({'socketToken': socketid}, 'player.id playerStats.profileicon.iconsOwned social.relations.friends social.status').exec();
+    var checkisowned = Player.findOne({'socketToken': socketid}, 'player.id playerStats.profileicon.iconsOwned social.relations.friends social.status customGame').exec();
     checkisowned.then((icons) => {
       if (icons.playerStats.profileicon.iconsOwned.includes(parseInt(newicon))) {
         var getUser = Player.findOneAndUpdate({'socketToken': socketid}, {$set:{'playerStats.profileicon.icon': newicon}}, {upsert: true, new: true}).exec();
@@ -20,6 +20,7 @@ module.exports.set = (newicon, socketid, update) => {
                 io.to(friend).emit('friend updated icon', {'id': icons.player.id, 'status': icons.social.status, 'icon': newicon})
               });
             });
+            if (icons.customGame.inlobby) io.to(icons.customGame.lobbyid).emit('custom game icon changed', {'pid': icons.player.id, 'iconid': newicon})
           }
         }).catch((err) => {error('110004')})
       } else wrong('You do not own this icon, try with another!')

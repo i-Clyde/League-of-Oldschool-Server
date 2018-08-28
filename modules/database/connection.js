@@ -9,6 +9,7 @@ db.on('error', console.error.bind(console, 'MONGOOSE Connection error:'));
 // Include needed models and schema
 var Player = require("./models/player").Player;
 var gChat = require("./models/globalchat").gChat;
+var CustomLobby = require("./models/lobby").CustomLobby;
 
 var escapeHtml = (text) => {
   var map = {
@@ -22,4 +23,4 @@ var escapeHtml = (text) => {
   return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
-module.exports = {mongoose, Player, gChat, db, escapeHtml}
+module.exports = {mongoose, Player, CustomLobby, gChat, db, escapeHtml}
