@@ -135,31 +135,35 @@ var PlayerSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
-    beforeGame: {
-      team: {
-        type: String
-      },
-      summonerspell1: {
-        type: String
-      },
-      summonerspell2: {
-        type: String
-      },
-      selectedRunePage: {
-        type: Number
-      },
-      selectedMasteryPage: {
-        type: Number
-      },
-      skin: {
-        type: Number
-      }
-    },
     rank: {
-      type: String
+      type: String,
+      default: 'Bronze'
     },
     ribbon: {
-      type: Number
+      type: Number,
+      default: 0
+    }
+  },
+  beforeGame: {
+    summonerspell1: {
+      type: String,
+      default: 'Ignite'
+    },
+    summonerspell2: {
+      type: String,
+      default: 'Flash'
+    },
+    selectedRunePage: {
+      type: Number,
+      default: 1
+    },
+    selectedMasteryPage: {
+      type: Number,
+      default: 1
+    },
+    skin: {
+      type: Number,
+      default: 0
     }
   },
   social: {

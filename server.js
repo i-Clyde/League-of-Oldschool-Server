@@ -5,14 +5,15 @@ const io_server_port = 3000;
 // Packages, (requires)
 var validator = require("email-validator");
 var bcrypt = require('bcryptjs');
-var {mongoose, Player, db, gChat, CustomLobby, escapeHtml} = require('./modules/database/connection');
+var {mongoose, Player, db, gChat, CustomLobby, chSelect, escapeHtml} = require('./modules/database/connection');
 
 db.once('open', function() {
 
   var connectCounter = 0;
   var loggedInCounter = 0;
-  Player.update({}, {'social.status': 0, 'customGame.inlobby': false, 'customGame.lobbyid': null}, {multi: true}, (err) => {if(err) console.log('[ERROR] There was an error trying to set offline status to everyone. - '+err)})
+  Player.update({}, {'social.status': 0, 'customGame.inlobby': false, 'customGame.lobbyid': null, 'desc_three': null}, {multi: true}, (err) => {if(err) console.log('[ERROR] There was an error trying to set offline status to everyone. - '+err)})
   CustomLobby.find({}).remove().exec();
+  chSelect.find({}).remove().exec();
 
   var http = require('http').createServer().listen(io_server_port, function(){console.log("[INFO] Server successfully started to listen")});;
   var io = require('socket.io').listen(http);
@@ -250,8 +251,23 @@ db.once('open', function() {
         require("./modules/championselect/sendmsg").send(socket.id, socket.nickname, socket.pid, socket.loggedin, socket.pregame_team, msg)
       });
 
+      // Champion select declaration
+      socket.on('champion select declarate', (champion, last) => {
+        require("./modules/championselect/declaration").declaration(socket.id, socket.pid, socket.loggedin, socket.pregame_team, socket.chgametoken, champion, last)
+      });
+
+      // Champion select spell update
+      socket.on('summoner spell update', (data) => {
+        require("./modules/championselect/summonerspell").update(socket.id, socket.pid, socket.loggedin, socket.pregame_team, socket.chgametoken, data)
+      });
+
+      // Champion select try lock in
+      socket.on('champion select try lock in', (champion) => {
+        require("./modules/championselect/markready").ready(socket.id, socket.pid, socket.loggedin, socket.pregame_team, socket.chgametoken, champion)
+      });
+
   });
 
-  module.exports = {io, Player, bcrypt, mongoose, validator, gChat, CustomLobby, escapeHtml};
+  module.exports = {io, Player, bcrypt, mongoose, validator, gChat, chSelect, CustomLobby, escapeHtml};
 
 });

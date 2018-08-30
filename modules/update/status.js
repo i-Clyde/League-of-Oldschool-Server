@@ -20,8 +20,10 @@ module.exports.update = (socketID, loggedIn, status, desc=null) => {
         } else if (status == 3) {friends.forEach((friend) => {
           if (desc == 'Creating lobby') {io.to(friend).emit('friend updated status', {'id': his.player.id, 'status': 1, 'desc': 'Creating lobby'})}
           else {
-            Player.findOneAndUpdate({'socketToken': socketID}, {$set: {'social.status': 3, 'social.desc_three': escapeHtml(desc)}}).exec();
-            io.to(friend).emit('friend updated status', {'id': his.player.id, 'status': 3, 'desc': escapeHtml(desc)})
+            Player.findOneAndUpdate({'socketToken': socketID}, {$set: {'social.status': 3, 'social.desc_three': escapeHtml(desc)}}).exec().then(() => {
+              io.to(friend).emit('friend updated status', {'id': his.player.id, 'status': 3, 'desc': escapeHtml(desc)})
+            }).catch((err) => {console.log(err)});
+
           }
         })}
       });

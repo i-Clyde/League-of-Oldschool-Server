@@ -1,4 +1,4 @@
-var {io, Player, mongoose, CustomLobby, escapeHtml} = require('../../server.js');
+var {io, Player, mongoose, chSelect, CustomLobby, escapeHtml} = require('../../server.js');
 
 module.exports.leave = (socketid, pNick, socketpid, islogged, data, cb) => {
   function success(msg) {io.to(socketid).emit('success', msg)};
@@ -13,7 +13,7 @@ module.exports.leave = (socketid, pNick, socketpid, islogged, data, cb) => {
 
         Player.update({'socketToken': socketid}, {$set: {'customGame.inlobby': false, 'customGame.lobbyid': null}}).exec().then(() => {
 
-          CustomLobby.findById(iscus.customGame.lobbyid, 'status started').exec().then((res) => {
+          CustomLobby.findById(iscus.customGame.lobbyid, 'status started map').exec().then((res) => {
             if (res.status.online.connected > 1) {
               var pull = {}, teamcolor;
 
@@ -42,8 +42,9 @@ module.exports.leave = (socketid, pNick, socketpid, islogged, data, cb) => {
                 }).catch((err) => {error('551551'), console.log(err)});
 
                 CustomLobby.findByIdAndUpdate(data.cGID, {$set: {'started': false}}).exec();
-                io.in(data.cGID).emit('custom game force game stop', pNick);
+                io.in(data.cGID).emit('custom game force game stop', pNick, 0, res.map);
                 io.to('logged users').emit('custom game info update', {'token': data.cGID, 'type': 6});
+                chSelect.findOne({'token': data.cGID}).remove().exec();
               }
 
               let newconnected = res.status.online.connected-1;
@@ -53,6 +54,7 @@ module.exports.leave = (socketid, pNick, socketpid, islogged, data, cb) => {
               io.to('logged users').emit('custom game info update', {'token': data.cGID, 'type': 2})
               io.to(data.cGID).emit('custom game player left', {'nick': pNick, 'pid': socketpid, 'teamcolor': teamcolor, 'started': res.started})
             } else {
+              if (res.started) {chSelect.findOne({'token': data.cGID}).remove().exec()}
               cb({'success': true, 'cGID': data.cGID});
               io.to('logged users').emit('custom game info update', {'token': data.cGID, 'type': 9})
               CustomLobby.findByIdAndRemove(data.cGID).exec();
