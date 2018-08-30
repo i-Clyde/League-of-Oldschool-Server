@@ -6,7 +6,7 @@ Server for League of Oldschool Client
 ## To run
 - Run your mongodb service and be sure your port is 27017 and no password on localhost [You can download server here](https://www.mongodb.com/download-center?jmp=nav#community)
 - Install all needed packages via `npm install`
-- Run server via `npm start`
+- Run server via `npm start`, If it doesn't work try: `node server.js`
 
 **Now you can register new account on the client and log in!**
 
