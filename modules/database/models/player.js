@@ -131,6 +131,20 @@ var PlayerSchema = new mongoose.Schema({
         default: null
       }
     },
+    ingamePrivate: {
+      gamePID: {
+        type: Number,
+        default: null
+      },
+      port: {
+        type: Number,
+        default: null
+      },
+      isconnected: {
+        type: Boolean,
+        default: null
+      }
+    },
     inChampionSelect: {
       type: Boolean,
       default: false
@@ -147,7 +161,7 @@ var PlayerSchema = new mongoose.Schema({
   beforeGame: {
     summonerspell1: {
       type: String,
-      default: 'Ignite'
+      default: 'Heal'
     },
     summonerspell2: {
       type: String,

@@ -1,4 +1,4 @@
-var {io, Player, CustomLobby, mongoose, chSelect, escapeHtml} = require('../../server.js');
+var {io, Player, CustomLobby, mongoose, InGame, MatchHistory, chSelect, escapeHtml} = require('../../server.js');
 
 module.exports.ready = (socketid, socketpid, loggedin, team, token, champion) => {
 
@@ -51,7 +51,7 @@ module.exports.ready = (socketid, socketpid, loggedin, team, token, champion) =>
                 setTimeout(() => {
                   io.to(token).emit('champion select header update', 'PREPARE FOR A BATTLE')
 
-                  chSelect.findOne({'token': token}, 'champions token').exec().then((preA) => { var gametoken = preA.token; //////////////
+                  chSelect.findOne({'token': token}, 'champions token team.blue team.purple').exec().then((preA) => { var gametoken = preA.token; //////////////
                     CustomLobby.findOne({'_id': token}, 'map cheats minions cooldowns players status.online').exec().then((preB) => { /////////////////////
                       var map;switch(preB.map) {
                         case 1: map=1; break;
@@ -60,7 +60,7 @@ module.exports.ready = (socketid, socketpid, loggedin, team, token, champion) =>
                         case 4: map=8; break;
                       }
                       var ids = preB.status.online.purple.concat(preB.status.online.blue);
-                      Player.find({'player.id': {$in: ids}}, 'player.id player.nickname.nick playerStats.profileicon.icon beforeGame.').exec().then((preC) => { ////////////////////
+                      Player.find({'player.id': {$in: ids}}, 'player.id player.nickname.nick playerStats.profileicon.icon beforeGame socketToken').exec().then((preC) => { ////////////////////
 
                         var gameInfo = {
                           "players": [],
@@ -73,120 +73,201 @@ module.exports.ready = (socketid, socketpid, loggedin, team, token, champion) =>
                             "COOLDOWNS_ENABLED": (preB.cooldowns == 0)?true:false,
                             "CHEATS_ENABLED": (preB.cheats == 0)?true:false,
                             "MINION_SPAWNS_ENABLED": (preB.minions == 0)?true:false,
-                            // "BLOWFISH": gametoken,
-                            "BLOWFISH": "18WUOhi6KZsTtldTsizvHg==",
-                            "CONTENT_PATH": "C:/Users/iClyde/Desktop/LOM/GameServer/GameServerApp/Content"
+                            "CONTENT_PATH": "../../../.."
                           }
                         };
 
+                        var defaultRunes = {
+                            "1": 5245,
+                            "2": 5245,
+                            "3": 5245,
+                            "4": 5245,
+                            "5": 5245,
+                            "6": 5245,
+                            "7": 5245,
+                            "8": 5245,
+                            "9": 5245,
+                            "10": 5317,
+                            "11": 5317,
+                            "12": 5317,
+                            "13": 5317,
+                            "14": 5317,
+                            "15": 5317,
+                            "16": 5317,
+                            "17": 5317,
+                            "18": 5317,
+                            "19": 5289,
+                            "20": 5289,
+                            "21": 5289,
+                            "22": 5289,
+                            "23": 5289,
+                            "24": 5289,
+                            "25": 5289,
+                            "26": 5289,
+                            "27": 5289,
+                            "28": 5335,
+                            "29": 5335,
+                            "30": 5335
+                        }
+                        var gamepid = 0, gamePIDtoDB = {};
+                        var statementBlue = {}, gPB=0;
+                        var statementPurple = {}, gPP=0;
                         // load blue
                         preC.forEach(function(index) {
-                          let teamx = ((preB.status.online.purple.includes(index.player.id))?'purple':'blue');
+                          if (preB.status.online.blue.includes(index.player.id)) {
+                            io.to(`${index.socketToken}`).emit('game ready your gamepid', gamepid);
+                            // console.log('BLUE: GAMEPID OF '+index.player.nickname.nick+' IS:'+ gamepid);
 
-                          gameInfo['players'].push({
-                            "rank": "BRONZE",
-                            "name": index.player.nickname.nick,
-                            "champion": preA.champions.taken[teamx][index.player.id],
-                            "team": ((preB.status.online.purple.includes(index.player.id))?'PURPLE':'BLUE'),
-                            "skin": 1,
-                            "summoner1": "Summoner"+index.beforeGame.summonerspell1,
-                            "summoner2": "Summoner"+index.beforeGame.summonerspell2,
-                            "ribbon": 1,
-                            "icon": index.playerStats.profileicon.icon,
-                            "runes": {
-                                "1": 5245,
-                                "2": 5245,
-                                "3": 5245,
-                                "4": 5245,
-                                "5": 5245,
-                                "6": 5245,
-                                "7": 5245,
-                                "8": 5245,
-                                "9": 5245,
-                                "10": 5317,
-                                "11": 5317,
-                                "12": 5317,
-                                "13": 5317,
-                                "14": 5317,
-                                "15": 5317,
-                                "16": 5317,
-                                "17": 5317,
-                                "18": 5317,
-                                "19": 5289,
-                                "20": 5289,
-                                "21": 5289,
-                                "22": 5289,
-                                "23": 5289,
-                                "24": 5289,
-                                "25": 5289,
-                                "26": 5289,
-                                "27": 5289,
-                                "28": 5335,
-                                "29": 5335,
-                                "30": 5335
-                            }
-                          });
+                            gameInfo['players'].push({
+                              "rank": "BRONZE",
+                              "name": index.player.nickname.nick,
+                              "champion": preA.champions.set[index.player.id][0],
+                              "team": ((preB.status.online.purple.includes(index.player.id))?'PURPLE':'BLUE'),
+                              "skin": 1,
+                              "summoner1": "Summoner"+index.beforeGame.summonerspell1,
+                              "summoner2": "Summoner"+index.beforeGame.summonerspell2,
+                              "ribbon": 1,
+                              "icon": index.playerStats.profileicon.icon,
+                              "runes": defaultRunes
+                            });
+
+                            statementBlue[gPB] = {
+                              'playerid': index.player.id,
+                              'nick': index.player.nickname.nick,
+                              'champion': preA.champions.set[index.player.id][0],
+                              'ssA': index.beforeGame.summonerspell1,
+                              'ssB': index.beforeGame.summonerspell2,
+                              'level': 1,
+                              'kills': 0,
+                              'deaths': 0,
+                              'assists': 0,
+                              'items': []
+                            };
+
+                            Player.update({'player.id': index.player.id}, {$set: {'playerInfo.ingamePrivate.gamePID': gamepid}}).exec();
+                            gamePIDtoDB[gamepid] = {champion: preA.champions.set[index.player.id][0], pid: index.player.id, status: false, team: 'blue'};
+                            gamepid++;gPB++;
+                          }
                         });
 
                         // load purple
-                        // preC.forEach(function(index) {
-                        //   gameInfo[players].push({
-                        //     "rank": "BRONZE",
-                        //     "name": index.player.nickname.nick,
-                        //     "champion": preA.champions.taken[],
-                        //     "team": "BLUE",
-                        //     "skin": 0,
-                        //     "summoner1": "SummonerHeal",
-                        //     "summoner2": "SummonerFlash",
-                        //     "ribbon": 2,
-                        //     "icon": 0,
-                        //     "runes": {
-                        //         "1": 5245,
-                        //         "2": 5245,
-                        //         "3": 5245,
-                        //         "4": 5245,
-                        //         "5": 5245,
-                        //         "6": 5245,
-                        //         "7": 5245,
-                        //         "8": 5245,
-                        //         "9": 5245,
-                        //         "10": 5317,
-                        //         "11": 5317,
-                        //         "12": 5317,
-                        //         "13": 5317,
-                        //         "14": 5317,
-                        //         "15": 5317,
-                        //         "16": 5317,
-                        //         "17": 5317,
-                        //         "18": 5317,
-                        //         "19": 5289,
-                        //         "20": 5289,
-                        //         "21": 5289,
-                        //         "22": 5289,
-                        //         "23": 5289,
-                        //         "24": 5289,
-                        //         "25": 5289,
-                        //         "26": 5289,
-                        //         "27": 5289,
-                        //         "28": 5335,
-                        //         "29": 5335,
-                        //         "30": 5335
-                        //     }
-                        //   })
-                        // })
+                        preC.forEach(function(index) {
+                          if (preB.status.online.purple.includes(index.player.id)) {
+                            io.to(`${index.socketToken}`).emit('game ready your gamepid', gamepid);
+                            // console.log('PURPLE: GAMEPID OF '+index.player.nickname.nick+' IS:'+ gamepid);
 
+                            gameInfo['players'].push({
+                              "rank": "BRONZE",
+                              "name": index.player.nickname.nick,
+                              "champion": preA.champions.set[index.player.id][0],
+                              "team": ((preB.status.online.purple.includes(index.player.id))?'PURPLE':'BLUE'),
+                              "skin": 1,
+                              "summoner1": "Summoner"+index.beforeGame.summonerspell1,
+                              "summoner2": "Summoner"+index.beforeGame.summonerspell2,
+                              "ribbon": 1,
+                              "icon": index.playerStats.profileicon.icon,
+                              "runes": defaultRunes
+                            });
 
-                        var json = JSON.stringify(gameInfo); var fs = require('fs');
-                        fs.writeFile('./Settings/GameInfo.json', json, {encoding:'utf8',flag:'w'}, function(err) {
-                          if (err) console.log(err);
-                          console.log('saved');
-                          console.log(json);
-                        });
+                            statementPurple[gPP] = {
+                              'playerid': index.player.id,
+                              'nick': index.player.nickname.nick,
+                              'champion': preA.champions.set[index.player.id][0],
+                              'ssA': index.beforeGame.summonerspell1,
+                              'ssB': index.beforeGame.summonerspell2,
+                              'level': 1,
+                              'kills': 0,
+                              'deaths': 0,
+                              'assists': 0,
+                              'minions': 0,
+                              'items': []
+                            };
 
-                        require('child_process').spawn("C:/Users/iClyde/Desktop/LOM/GameServer-xx/GameServerApp/bin/Release/GameServerApp.exe", { stdio: 'ignore' }, function (err, stdout, stderr) {
-                            if (err) {return console.log(err)}
-                            console.log(stdout);
-                        });
+                            Player.update({'player.id': index.player.id}, {$set: {'playerInfo.ingamePrivate.gamePID': gamepid}}).exec();
+                            gamePIDtoDB[gamepid] = {champion: preA.champions.set[index.player.id][0], pid: index.player.id, status: false, team: 'purple'};
+                            gamepid++;gPP++;
+                          }
+                        })
+
+                        var json = JSON.stringify(gameInfo);
+                        var execFile = require('child_process').execFile, fs = require('fs');
+
+                        var args = [];
+                        args[2] = "--port";
+
+                        InGame.aggregate([
+                          {$project: {_id: 0, port: '$port'}}
+                        ]).exec().then((portobj) => {
+                          var portarr = []; portobj.forEach(function(i) { portarr.push(i.port) });
+                          if (portarr.length > 0) {
+                            for (i=0;i<50;i++) {
+                              let nowport = parseInt(((i < 10)?'230'+i:'23'+i));
+                              if (!(portarr.includes(nowport))) {
+                                args[3] = parseInt(((i < 10)?'230'+i:'23'+i));
+                                break;
+                              }
+                            }
+                          } else args[3] = 2300;
+
+                          if (typeof args[3] != 'number') {
+
+                            //// TODO: Send to clients that and destroy lobby
+
+                            console.log('All ports are unavailable')
+                          } else {
+                            fs.writeFile('C:/lol420/GameServer/GameServerConsole/bin/Debug/net472/Settings/GameInfo.json', json, {encoding:'utf8', flag:'w'}, function(err) {
+                              if (err) console.log(err);
+                              execFile("C:/lol420/GameServer/GameServerConsole/bin/Debug/net472/GameServerConsole.exe", args, {cwd: 'C:/lol420/GameServer/GameServerConsole/bin/Debug/net472', stdio: 'ignore',  maxBuffer: 1024 * 100000}, function (err) {if (err) {return console.log(err)}});
+                              var NewGame = new InGame({
+                                port: args[3],
+                                token: token,
+                                forceEnd: true,
+                                victory: null,
+                                ready: gamePIDtoDB,
+                                purple: statementPurple,
+                                blue: statementBlue,
+                                settings: {'map': preB.map, 'manacosts': preB.cooldowns, 'minions': preB.minions, 'cooldowns': preB.cooldowns, 'cheats': preB.cheats, 'bluesize': preB.status.online.blue.length, 'purplesize': preB.status.online.purple.length}
+                              });
+                              NewGame.save().catch((err) => {console.log('[ERROR] '+err)});
+                              var NewMatchHistory = new MatchHistory({
+                                token: token,
+                                forceEnd: true,
+                                victory: null,
+                                purple: statementPurple,
+                                blue: statementBlue,
+                                settings: {'map': preB.map, 'manacosts': preB.cooldowns, 'minions': preB.minions, 'cooldowns': preB.cooldowns, 'cheats': preB.cheats, 'bluesize': preB.status.online.blue.length, 'purplesize': preB.status.online.purple.length}
+                              });
+                              NewMatchHistory.save().catch((err) => {console.log('[ERROR] '+err)});
+
+                              io.in(token).clients((error, socketIds) => {
+                                if (error) throw error;
+                                socketIds.forEach(socketId => {  io.sockets.connected[socketId].join('in-'+token+'-game');
+                                                                 io.sockets.connected[socketId].leave(token);
+                                                                 Player.findOneAndUpdate({'socketToken': socketId}, {$set: {'customGame.inlobby': false, 'customGame.lobbyid': null, 'playerInfo.ingamePrivate.isconnected': false, 'playerInfo.ingamePrivate.port': args[3], 'playerInfo.ingame.ingameToken': token}}).exec();
+                                                              })
+                              });
+                              io.in(token+'-p').clients((error, socketIds) => {
+                                if (error) throw error;
+                                socketIds.forEach(socketId => io.sockets.connected[socketId].leave(token+'-p'));
+                              });
+                              io.in(token+'-b').clients((error, socketIds) => {
+                                if (error) throw error;
+                                socketIds.forEach(socketId => io.sockets.connected[socketId].leave(token+'-b'));
+                              });
+
+                              setTimeout(() => {
+                                io.to('in-'+token+'-game').emit('game successfully started info', gamePIDtoDB)
+                                CustomLobby.findOneAndRemove({'_id': token}).exec();
+                                chSelect.findOneAndRemove({'token': token}).exec();
+                              }, 2500)
+                            });
+                            setTimeout(() => {
+                              console.log('[GAME-SERVER #'+args[3]+']', 'Game #'+args[3]+' killed!')
+                              io.of('/game-server').to(args[3]).emit("Try close", true)
+                            }, 900000)
+                          }
+
+                        }).catch((err) => console.log(err))
 
                       }).catch((err) => {console.log(err)})
 

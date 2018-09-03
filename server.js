@@ -3,43 +3,52 @@ const mongodb_host = "mongodb://localhost:27017/oldSchoolLeague";module.exports.
 const io_server_port = 3000;
 
 // Packages, (requires)
+var pjson = require('./package.json');
 var validator = require("email-validator");
 var bcrypt = require('bcryptjs');
-var {mongoose, Player, db, gChat, CustomLobby, chSelect, escapeHtml} = require('./modules/database/connection');
+var colors = require('colors');
+var {mongoose, Player, db, gChat, InGame, MatchHistory, CustomLobby, chSelect, escapeHtml} = require('./modules/database/connection');
 
 db.once('open', function() {
 
   var connectCounter = 0;
   var loggedInCounter = 0;
-  Player.update({}, {'social.status': 0, 'customGame.inlobby': false, 'customGame.lobbyid': null, 'desc_three': null}, {multi: true}, (err) => {if(err) console.log('[ERROR] There was an error trying to set offline status to everyone. - '+err)})
+  Player.update({}, {'social.status': 0, 'customGame.inlobby': false, 'customGame.lobbyid': null, 'desc_three': null, 'playerInfo.ingamePrivate.port': null, 'playerInfo.ingamePrivate.isconnected': null, 'playerInfo.ingamePrivate.gamePID': null, 'playerInfo.ingame.ingameToken': null}, {multi: true}, (err) => {if(err) console.log('[ERROR] There was an error trying to set offline status to everyone. - '+err)})
   CustomLobby.find({}).remove().exec();
   chSelect.find({}).remove().exec();
+  InGame.find({}).remove().exec();
+  MatchHistory.find({'forceEnd': true}).remove().exec();
 
-  var http = require('http').createServer().listen(io_server_port, function(){console.log("[INFO] Server successfully started to listen")});;
+  var http = require('http').createServer().listen(io_server_port, function(){console.log("[INFO] Server successfully started to listen".cyan)});;
   var io = require('socket.io').listen(http);
 
-  console.log('==========================\n Version: 0.3.7\n oldSchoolLeagueClientServer: is running @port: ' + io_server_port + '\n Author: Mikołaj Chodorowski\n Press CTRL+C to end process \n==========================\n')
-  console.log('[INFO] Successfully connected to the database');
+  console.log('=========================='.rainbow);
+  console.log('Version:'.green, pjson.version.yellow);
+  console.log('Server port:'.green, colors.yellow(io_server_port));
+  console.log('Author:'.green, 'Mikołaj Chodorowski'.yellow);
+  console.log('Press CTRL+C to end process'.white);
+  console.log('=========================='.rainbow, '\n');
+  console.log('[INFO] Successfully connected to the database'.cyan);
 
   // Socket.IO Events handlers
   io.on('connection', function(socket) {
+    socket.on('connecl', () => {
+      // On connection stuff {
+        socket.loggedin = false; connectCounter++;
+        require("./modules/events/connect").connected(connectCounter, loggedInCounter);
+      // };
 
-    // On connection stuff {
-      connectCounter++;socket.loggedin = false;
-      require("./modules/events/connect").connected(connectCounter, loggedInCounter);
-    // };
-
-    socket.on('disconnect', function() {
-      socket.leave('global chat');
-      connectCounter--;if(socket.loggedin) {
-        socket.leave('logged users');
-        loggedInCounter--}
-      require("./modules/events/disconnect").disconnected(socket.id, (socket.loggedin?socket.nickname:null), socket.loggedin, connectCounter, loggedInCounter, socket.handshake.address, (cbres) => {
-        if (cbres.wasinlobby) {socket.leave(cbres.cGID); socket.leave(cbres.cGID+'-p'); socket.leave(cbres.cGID+'-b')};
+      socket.on('disconnect', function() {
+        socket.leave('global chat');
+        connectCounter--;if(socket.loggedin) {
+          socket.leave('logged users');
+          loggedInCounter--}
+        require("./modules/events/disconnect").disconnected(socket.id, (socket.loggedin?socket.nickname:null), socket.loggedin, connectCounter, loggedInCounter, socket.handshake.address, (cbres) => {
+          if (cbres.wasinlobby) {socket.leave(cbres.cGID); socket.leave(cbres.cGID+'-p'); socket.leave(cbres.cGID+'-b')};
+        });
       });
-    });
 
-    // Handlers
+      // Handlers
       // Handle register request
       socket.on('register request', function(data) {
         require("./modules/auth/register").register(data, socket.id, socket.handshake.address);
@@ -59,6 +68,8 @@ db.once('open', function() {
 
             socket.join('logged users');
             socket.join('global chat');
+
+            if (res.isingame) {socket.join('in-'+res.gametokenif+'-game')}
           }
 
         });
@@ -266,8 +277,76 @@ db.once('open', function() {
         require("./modules/championselect/markready").ready(socket.id, socket.pid, socket.loggedin, socket.pregame_team, socket.chgametoken, champion)
       });
 
+      // Load game data after relog
+      socket.on('game load after relog', (gid) => {
+        require("./modules/game/loadinfo").load(socket.id, socket.loggedin, gid)
+      });
+    })
   });
 
-  module.exports = {io, Player, bcrypt, mongoose, validator, gChat, chSelect, CustomLobby, escapeHtml};
+  function game_server_prefix(port) {return('[GAME-SERVER #'+port+']')}
+  io.of('/game-server').on('connection', function(game) {
+    game.on('game server set port', (data) => {
+      console.log(game_server_prefix(data), 'Game started!');
+      InGame.findOne({port: data}, 'token').exec().then((gID) => {
+        io.to('in-'+gID.token+'-game').emit('game successfully started', data);
+      })
+      game.port = data; game.join(game.port);
+      game.lifetime = 0; game.lifetimeIntercal = setInterval(() => {game.times++; io.of('/game-server').to(game.port).emit("renew connection", true)}, 10000);
+      // require("./modules/game/ready").ready(socket.id, socket.pid, socket.loggedin, socket.pregame_team, socket.chgametoken, champion)
+    })
+
+    game.on('game server game successfully end', (data) => {
+      console.log(data);
+      InGame.findOne({port: game.port}, 'token').exec().then((gID) => {
+        InGame.findOneAndUpdate({port: game.port}, {$set: {'forceEnd': false, 'victory': data}}).exec().then(() => {
+
+          MatchHistory.findOneAndUpdate({'token': data.token}, {$set: {'forceEnd': false, 'victory': data}}).exec();
+          io.to('in-'+gID.token+'-game').emit('Game successfully ended destroyed: '+data); // Here send data with all stuff after game
+
+        }).catch((err) => {console.log('[ERROR] '+err)});
+      }).catch((err) => {console.log('[ERROR] '+err)});
+    })
+
+    game.on('game server new ready', function(gamePID) {console.log(game_server_prefix(game.port), 'New ready with id '+ gamePID)}) // Returns gamePID;
+    game.on('game server new disconnected', function(gamePID) {console.log(game_server_prefix(game.port), 'New disconnected with id '+ gamePID)}) // Returns gamePID;
+    game.on('game server new reconnected', function(gamePID) {console.log(game_server_prefix(game.port), 'New reconnected with id '+ gamePID)}) // Returns gamePID;
+    game.on('game server level up', function(gamePID) {console.log(game_server_prefix(game.port), 'New leveled up player '+ gamePID)}) // Returns gamePID;
+    game.on('game server minon killed', function(gamePID) {console.log(game_server_prefix(game.port), 'Killer of the minion '+ gamePID)}) // Returns gamePID;
+    game.on('game server new kill', function(gamePID) {console.log(game_server_prefix(game.port), 'Killer of the minion '+ gamePID)}) // Returns gamePID;
+    game.on('game server new death', function(gamePID) {console.log(game_server_prefix(game.port), 'Killer of the minion '+ gamePID)}) // Returns gamePID;
+
+    game.on('game server info', (data) => {console.log(game_server_prefix(game.port), data)});
+    game.on('disconnect', function() {
+      InGame.findOne({port: game.port}, 'token forceEnd').exec().then((gID) => {
+        if (gID.forceEnd) {
+          MatchHistory.findOneAndRemove({'token': gID.token}).exec();
+          io.to('in-'+gID.token+'-game').emit('Game force ended')};
+          InGame.findOneAndRemove({port: game.port}).exec().catch((err) => {console.log('[ERROR] '+err)});
+      }).catch((err) => {console.log('[ERROR] '+err)});
+      // InGame.findOneAndRemove({port: game.port}).exec()
+      console.log(game_server_prefix(game.port), 'Game ended!');
+      game.leave(game.port), clearInterval(game.lifetimeIntercal)
+    })
+
+  })
+
+  module.exports = {io, Player, bcrypt, mongoose, validator, MatchHistory, InGame, gChat, chSelect, CustomLobby, escapeHtml};
 
 });
+
+process.stdin.resume();
+
+function exitHandler(options, exitCode) {
+    if (options.cleanup) {
+      console.log('[INFO] Server closed'.yellow)
+      mongoose.connection.close();
+    }
+    if (options.exit) process.exit();
+}
+
+process.on('exit', exitHandler.bind(null,{cleanup:true}));
+process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+process.on('SIGUSR1', exitHandler.bind(null, {exit:true}));
+process.on('SIGUSR2', exitHandler.bind(null, {exit:true}));
+process.on('uncaughtException', exitHandler.bind(null, {exit:true}));

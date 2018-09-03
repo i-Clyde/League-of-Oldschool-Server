@@ -17,10 +17,12 @@ module.exports.auth = (username, password, socketid, callback) => {
             if (judge) {
               var updateToken = Player.findOneAndUpdate({'player.login': username}, {$set:{socketToken: socketid, 'social.status': 1}}, {upsert: true, new: true}).exec();
               updateToken.then(() => {
-                var data = Player.findOne({'player.login': username}, 'player.login player.nickname.nick playerStats.profileicon.icon player.id social.description social.relations.friends playerStats.profileicon.iconsOwned').exec();
+                var data = Player.findOne({'player.login': username}, 'player.login player.nickname.nick playerStats.profileicon.icon player.id social.description social.relations.friends playerStats.profileicon.iconsOwned playerInfo.ingamePrivate.gamePID playerInfo.ingamePrivate.port playerInfo.ingamePrivate.isconnected playerInfo.ingame.ingameToken').exec();
                 data.then((data) => {
+                  let isingame = false;
+                  if (data.playerInfo.ingamePrivate.isconnected != null) isingame = true;
 
-                  callback({'login': data.player.login, 'id': data.player.id, 'nick': data.player.nickname.nick, 'loggedin': true});
+                  callback({'login': data.player.login, 'id': data.player.id, 'nick': data.player.nickname.nick, 'loggedin': true, 'isingame': isingame, 'gametokenif': data.playerInfo.ingame.ingameToken});
 
                   io.to(`${socketid}`).emit('login response', {
                     status: 'success',
@@ -30,6 +32,7 @@ module.exports.auth = (username, password, socketid, callback) => {
                     id: data.player.id,
                     icon: data.playerStats.profileicon.icon,
                     ownedIcons: data.playerStats.profileicon.iconsOwned,
+                    gameinfo: {'port': data.playerInfo.ingamePrivate.port, 'isin': data.playerInfo.ingamePrivate.isconnected, 'gametoken': data.playerInfo.ingame.ingameToken, 'gamepid': data.playerInfo.ingamePrivate.gamePID},
                     friendsid: data.social.relations.friends,
                     socketToken: socketid
                   });
@@ -41,8 +44,8 @@ module.exports.auth = (username, password, socketid, callback) => {
                       io.to(friend).emit('friend updated status', {'id': data.player.id, 'status': 1, 'desc': (data.social.description == null)?null:escapeHtml(data.social.description)})
                     });
                   });
-                }).catch((err) => {error('000003')})
-              }).catch((err) => {error('000005'+err)})
+                }).catch((err) => {error('000003'); console.log('[ERROR]', err)})
+              }).catch((err) => {error('000005'); console.log('[ERROR]', err)})
             } else wrong()}
           })
         }).catch((err) => {error('000002')})

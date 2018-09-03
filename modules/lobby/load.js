@@ -23,6 +23,7 @@ module.exports.load = (socketid, islogged) => {
           token: '$_id',
           name: '$name',
           map: '$map',
+          started: '$started',
           teamsize: '$teamsize',
           password: {$cond: { if: {$ne: ['$password', null]}, then: true, else: false} },
           online: '$status.online.connected',
