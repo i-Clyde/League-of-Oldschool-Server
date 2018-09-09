@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-# League-of-Oldschool-Client
-to:do - readme
-
-
-[Client](https://github.com/i-Clyde/League-of-Oldschool-Client)
-=======
 # League-of-Oldschool-Server
 Server for League of Oldschool Client
 
@@ -20,4 +13,3 @@ Server for League of Oldschool Client
 
 **After championselect phase game will not start also cdn isn't implemented**
 **In future client will have cdn implementation to download game and client updates and be in exe installer form**
->>>>>>> e1282c42f8cbbe2502c57d39c2a26afd54b19200
