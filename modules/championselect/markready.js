@@ -112,6 +112,7 @@ module.exports.ready = (socketid, socketpid, loggedin, team, token, champion) =>
                         var gamepid = 0, gamePIDtoDB = {};
                         var statementBlue = {}, gPB=0;
                         var statementPurple = {}, gPP=0;
+                        var votes = {};
                         // load blue
                         preC.forEach(function(index) {
                           if (preB.status.online.blue.includes(index.player.id)) {
@@ -143,6 +144,9 @@ module.exports.ready = (socketid, socketpid, loggedin, team, token, champion) =>
                               'assists': 0,
                               'items': []
                             };
+
+                            votes[gamepid] = false;
+                            io.sockets.connected[socketid].gamePID = gamepid;
 
                             Player.update({'player.id': index.player.id}, {$set: {'playerInfo.ingamePrivate.gamePID': gamepid}}).exec();
                             gamePIDtoDB[gamepid] = {champion: preA.champions.set[index.player.id][0], pid: index.player.id, status: false, team: 'blue'};
@@ -182,6 +186,9 @@ module.exports.ready = (socketid, socketpid, loggedin, team, token, champion) =>
                               'minions': 0,
                               'items': []
                             };
+
+                            votes[gamepid] = false;
+                            io.sockets.connected[socketid].gamePID = gamepid;
 
                             Player.update({'player.id': index.player.id}, {$set: {'playerInfo.ingamePrivate.gamePID': gamepid}}).exec();
                             gamePIDtoDB[gamepid] = {champion: preA.champions.set[index.player.id][0], pid: index.player.id, status: false, team: 'purple'};
@@ -224,6 +231,7 @@ module.exports.ready = (socketid, socketpid, loggedin, team, token, champion) =>
                                 forceEnd: true,
                                 victory: null,
                                 ready: gamePIDtoDB,
+                                'votes': votes,
                                 purple: statementPurple,
                                 blue: statementBlue,
                                 settings: {'map': preB.map, 'manacosts': preB.cooldowns, 'minions': preB.minions, 'cooldowns': preB.cooldowns, 'cheats': preB.cheats, 'bluesize': preB.status.online.blue.length, 'purplesize': preB.status.online.purple.length}

@@ -281,6 +281,11 @@ db.once('open', function() {
       socket.on('game load after relog', (gid) => {
         require("./modules/game/loadinfo").load(socket.id, socket.loggedin, gid)
       });
+
+      // Void the game!
+      socket.on('game void vote', () => {
+        require("./modules/game/vote").togglevote(socket.id, socket.loggedin, socket.gamePID)
+      })
     })
   });
 
